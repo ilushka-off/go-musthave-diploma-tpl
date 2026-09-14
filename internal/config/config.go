@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"os"
@@ -11,6 +13,7 @@ type Config struct {
 	RunAddress           string
 	DatabaseURI          string
 	AccrualSystemAddress string
+	JWTSecret            string
 }
 
 var (
@@ -37,6 +40,17 @@ func Load() (Config, error) {
 
 	if v := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); v != "" {
 		cfg.AccrualSystemAddress = v
+	}
+
+	if v := os.Getenv("JWT_SECRET"); v != "" {
+		cfg.JWTSecret = v
+	}
+
+	if cfg.JWTSecret == "" {
+		jwtSecret := make([]byte, 32)
+		rand.Read(jwtSecret)
+		cfg.JWTSecret = hex.EncodeToString(jwtSecret)
+
 	}
 
 	if cfg.DatabaseURI == "" {
