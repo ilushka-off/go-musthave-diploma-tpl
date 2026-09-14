@@ -41,6 +41,6 @@ func Auth(tokens *auth.TokenManager, next http.Handler) http.Handler {
 }
 
 func UserIDFromContext(ctx context.Context) (int, bool) {
-	user, ok := ctx.Value(userIDKey{}).(int)
-	return user, ok
+	userID, ok := ctx.Value(userIDKey{}).(int)
+	return userID, ok
 }
