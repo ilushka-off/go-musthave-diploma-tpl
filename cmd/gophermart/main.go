@@ -1,3 +1,65 @@
 package main
 
-func main() {}
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/config"
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/storage/postgres"
+)
+
+func main() {
+	err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	conf, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	pool, err := postgres.OpenPool(ctx, conf.DatabaseURI)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+
+	err = postgres.RunMigrations(conf.DatabaseURI)
+	if err != nil {
+		return err
+	}
+
+	mux := http.NewServeMux()
+	server := &http.Server{
+		Addr:    conf.RunAddress,
+		Handler: mux,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errCh:
+		return fmt.Errorf("http server: %w", err)
+	case <-ctx.Done():
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return server.Shutdown(shutdownCtx)
+}
