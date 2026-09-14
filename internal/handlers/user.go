@@ -5,10 +5,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/auth"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/service"
 )
-
-const authCookieName = "token"
 
 type UserHandler struct {
 	userService *service.UserService
@@ -23,7 +22,7 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 func setAuthToken(w http.ResponseWriter, token string) {
 	w.Header().Set("Authorization", "Bearer "+token)
 	http.SetCookie(w, &http.Cookie{
-		Name:     authCookieName,
+		Name:     auth.CookieName,
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,

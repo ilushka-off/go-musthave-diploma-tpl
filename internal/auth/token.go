@@ -12,6 +12,8 @@ var (
 	ErrInvalidToken = errors.New("invalid token")
 )
 
+const CookieName = "token"
+
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID int
