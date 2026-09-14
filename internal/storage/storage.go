@@ -19,7 +19,6 @@ var (
 type UserRepository interface {
 	CreateUser(ctx context.Context, user models.User) (int, error)
 	GetUserByLogin(ctx context.Context, login string) (models.User, error)
-	GetUserByID(ctx context.Context, userID int) (models.User, error)
 	GetCurrentBalanceByUserID(ctx context.Context, userID int) (decimal.Decimal, error)
 }
 
