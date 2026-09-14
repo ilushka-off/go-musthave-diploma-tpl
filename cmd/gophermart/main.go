@@ -10,9 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/auth"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/config"
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/handlers"
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/service"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/storage/postgres"
 )
+
+const tokenTTL = 24 * time.Hour
 
 func main() {
 	err := run()
@@ -41,10 +46,16 @@ func run() error {
 		return err
 	}
 
-	mux := http.NewServeMux()
+	userRepository := postgres.NewUserRepository(pool)
+	tokenManager := auth.NewTokenManager([]byte(conf.JWTSecret), tokenTTL)
+	userService := service.NewUserService(userRepository, tokenManager)
+	userHandler := handlers.NewUserHandler(userService)
+
+	router := handlers.NewRouter(userHandler)
+
 	server := &http.Server{
 		Addr:    conf.RunAddress,
-		Handler: mux,
+		Handler: router,
 	}
 
 	errCh := make(chan error, 1)
