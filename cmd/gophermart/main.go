@@ -68,11 +68,14 @@ func run() error {
 	userHandler := handlers.NewUserHandler(userService, logger)
 
 	orderRepository := postgres.NewOrderRepository(pool)
-
 	orderService := service.NewOrderService(orderRepository)
 	orderHandler := handlers.NewOrderHandler(orderService, logger)
 
-	router := handlers.NewRouter(userHandler, orderHandler, logger, tokenManager)
+	withdrawalRepository := postgres.NewWithdrawalRepository(pool)
+	balanceService := service.NewBalanceService(withdrawalRepository, userRepository)
+	balanceHandler := handlers.NewBalanceHandler(balanceService, logger)
+
+	router := handlers.NewRouter(userHandler, orderHandler, balanceHandler, logger, tokenManager)
 
 	accrualClient := accrual.NewClient(conf.AccrualSystemAddress)
 

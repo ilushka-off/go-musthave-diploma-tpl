@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewRouter(userHandler *UserHandler, orderHandler *OrderHandler, logger *zap.Logger, tokenManager *auth.TokenManager) http.Handler {
+func NewRouter(userHandler *UserHandler, orderHandler *OrderHandler, balanceHandler *BalanceHandler, logger *zap.Logger, tokenManager *auth.TokenManager) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger(logger))
 
@@ -20,6 +20,9 @@ func NewRouter(userHandler *UserHandler, orderHandler *OrderHandler, logger *zap
 		r.Use(middleware.Auth(tokenManager))
 		r.Post("/api/user/orders", orderHandler.Upload)
 		r.Get("/api/user/orders", orderHandler.List)
+		r.Post("/api/user/balance/withdraw", balanceHandler.Withdraw)
+		r.Get("/api/user/balance", balanceHandler.Get)
+		r.Get("/api/user/withdrawals", balanceHandler.ListWithdrawals)
 	})
 
 	return r
