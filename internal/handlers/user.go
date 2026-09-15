@@ -7,15 +7,18 @@ import (
 
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/auth"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/service"
+	"go.uber.org/zap"
 )
 
 type UserHandler struct {
 	userService *service.UserService
+	logger      *zap.Logger
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
+func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
+		logger:      logger,
 	}
 }
 
@@ -47,6 +50,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "login already exists", http.StatusConflict)
 		return
 	case err != nil:
+		h.logger.Error("register user", zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -68,6 +72,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid login or password", http.StatusUnauthorized)
 		return
 	case err != nil:
+		h.logger.Error("login user", zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

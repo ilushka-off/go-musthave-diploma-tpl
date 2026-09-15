@@ -7,17 +7,24 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/accrual"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/auth"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/config"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/handlers"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/service"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/storage/postgres"
+	"github.com/shopspring/decimal"
+	"go.uber.org/zap"
 )
 
-const tokenTTL = 24 * time.Hour
+const (
+	tokenTTL            = 24 * time.Hour
+	accrualPollInterval = time.Second
+)
 
 func main() {
 	err := run()
@@ -27,6 +34,14 @@ func main() {
 }
 
 func run() error {
+	decimal.MarshalJSONWithoutQuotes = true
+
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return fmt.Errorf("create logger: %w", err)
+	}
+	defer logger.Sync()
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -46,12 +61,32 @@ func run() error {
 		return err
 	}
 
-	userRepository := postgres.NewUserRepository(pool)
 	tokenManager := auth.NewTokenManager([]byte(conf.JWTSecret), tokenTTL)
-	userService := service.NewUserService(userRepository, tokenManager)
-	userHandler := handlers.NewUserHandler(userService)
 
-	router := handlers.NewRouter(userHandler)
+	userRepository := postgres.NewUserRepository(pool)
+	userService := service.NewUserService(userRepository, tokenManager)
+	userHandler := handlers.NewUserHandler(userService, logger)
+
+	orderRepository := postgres.NewOrderRepository(pool)
+
+	orderService := service.NewOrderService(orderRepository)
+	orderHandler := handlers.NewOrderHandler(orderService, logger)
+
+	router := handlers.NewRouter(userHandler, orderHandler, logger, tokenManager)
+
+	accrualClient := accrual.NewClient(conf.AccrualSystemAddress)
+
+	var wg sync.WaitGroup
+
+	workerCtx, cancelWorker := context.WithCancel(ctx)
+	defer func() {
+		cancelWorker()
+		wg.Wait()
+	}()
+	worker := accrual.NewWorker(orderRepository, logger, accrualClient, accrualPollInterval)
+	wg.Go(func() {
+		worker.Run(workerCtx)
+	})
 
 	server := &http.Server{
 		Addr:    conf.RunAddress,

@@ -23,21 +23,23 @@ func tokenFromRequest(r *http.Request) string {
 	return ""
 }
 
-func Auth(tokens *auth.TokenManager, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := tokenFromRequest(r)
-		if token == "" {
-			http.Error(w, "not enough token", http.StatusUnauthorized)
-			return
-		}
-		userID, err := tokens.Parse(token)
-		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		ctx := context.WithValue(r.Context(), userIDKey{}, userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+func Auth(tokens *auth.TokenManager) func(handler http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := tokenFromRequest(r)
+			if token == "" {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			userID, err := tokens.Parse(token)
+			if err != nil {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			ctx := context.WithValue(r.Context(), userIDKey{}, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
 func UserIDFromContext(ctx context.Context) (int, bool) {

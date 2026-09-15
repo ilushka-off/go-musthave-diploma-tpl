@@ -1,11 +1,26 @@
 package handlers
 
-import "net/http"
+import (
+	"net/http"
 
-func NewRouter(userHandler *UserHandler) http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/user/register", userHandler.Register)
-	mux.HandleFunc("POST /api/user/login", userHandler.Login)
+	"github.com/go-chi/chi/v5"
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/auth"
+	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/middleware"
+	"go.uber.org/zap"
+)
 
-	return mux
+func NewRouter(userHandler *UserHandler, orderHandler *OrderHandler, logger *zap.Logger, tokenManager *auth.TokenManager) http.Handler {
+	r := chi.NewRouter()
+	r.Use(middleware.Logger(logger))
+
+	r.Post("/api/user/register", userHandler.Register)
+	r.Post("/api/user/login", userHandler.Login)
+
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.Auth(tokenManager))
+		r.Post("/api/user/orders", orderHandler.Upload)
+		r.Get("/api/user/orders", orderHandler.List)
+	})
+
+	return r
 }
