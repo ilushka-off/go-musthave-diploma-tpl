@@ -61,7 +61,9 @@ func (f *fakeUserRepository) GetCurrentBalanceByUserID(_ context.Context, _ int)
 
 type fakeOrderRepository struct {
 	orders    map[string]models.Order
+	byUser    []models.Order
 	createErr error
+	listErr   error
 }
 
 func (f *fakeOrderRepository) CreateOrder(_ context.Context, userID int, number string, status models.OrderStatus) (int, error) {
@@ -92,7 +94,10 @@ func (f *fakeOrderRepository) GetOrderByNumber(_ context.Context, number string)
 }
 
 func (f *fakeOrderRepository) GetOrdersByUserID(_ context.Context, _ int) ([]models.Order, error) {
-	panic("not used in these tests")
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return f.byUser, nil
 }
 
 func (f *fakeOrderRepository) UpdateStatusByNumber(_ context.Context, _ string, _ *decimal.Decimal, _ models.OrderStatus) error {
@@ -104,9 +109,11 @@ func (f *fakeOrderRepository) GetPendingOrders(_ context.Context) ([]models.Orde
 }
 
 type fakeWithdrawalRepository struct {
+	withdrawals []models.Withdrawal
 	withdrawn   decimal.Decimal
 	withdrawErr error
 	getErr      error
+	listErr     error
 }
 
 func (f *fakeWithdrawalRepository) CreateWithdrawal(_ context.Context, _ int, _ string, _ decimal.Decimal) (int, error) {
@@ -117,7 +124,10 @@ func (f *fakeWithdrawalRepository) CreateWithdrawal(_ context.Context, _ int, _ 
 }
 
 func (f *fakeWithdrawalRepository) GetWithdrawalsByUserID(_ context.Context, _ int) ([]models.Withdrawal, error) {
-	panic("not used in these tests")
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return f.withdrawals, nil
 }
 
 func (f *fakeWithdrawalRepository) GetWithdrawnByUserID(_ context.Context, _ int) (decimal.Decimal, error) {
