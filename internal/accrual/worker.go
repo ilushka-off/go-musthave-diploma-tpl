@@ -49,11 +49,11 @@ func (w *Worker) processPending(ctx context.Context) {
 	for _, order := range orders {
 		result, err := w.client.GetOrderAccrual(ctx, order.Number)
 		if rlErr, ok := errors.AsType[*RateLimitError](err); ok {
+			w.logger.Warn("accrual rate limit, pausing", zap.Duration("retry_after", rlErr.RetryAfter))
 			select {
 			case <-ctx.Done():
 				return
 			case <-time.After(rlErr.RetryAfter):
-				w.logger.Warn("rate limit warn", zap.Error(err))
 				return
 			}
 		}
