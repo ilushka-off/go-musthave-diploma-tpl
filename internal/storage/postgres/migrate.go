@@ -9,6 +9,8 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
+// RunMigrations применяет встроенные миграции схемы к базе databaseURI.
+// Повторный вызов на актуальной схеме ошибкой не является.
 func RunMigrations(databaseURI string) error {
 	sourceDriver, err := iofs.New(migrationFS, "migrations")
 	if err != nil {

@@ -1,3 +1,4 @@
+// Package config читает параметры запуска сервиса из флагов и переменных окружения.
 package config
 
 import (
@@ -9,6 +10,7 @@ import (
 	"strings"
 )
 
+// Config — параметры запуска сервиса накопительной системы лояльности.
 type Config struct {
 	RunAddress           string
 	DatabaseURI          string
@@ -16,11 +18,17 @@ type Config struct {
 	JWTSecret            string
 }
 
+// Ошибки конфигурации, при которых сервис не может быть запущен.
 var (
 	ErrDatabaseURINotFound          = errors.New("database uri not found")
 	ErrAccrualSystemAddressNotFound = errors.New("accrual system address not found")
 )
 
+// Load собирает конфигурацию из флагов -a, -d, -r и переменных окружения
+// RUN_ADDRESS, DATABASE_URI, ACCRUAL_SYSTEM_ADDRESS, JWT_SECRET. Переменные
+// окружения имеют приоритет над флагами. Адрес системы начислений дополняется
+// схемой http://, если она не указана. Если JWT_SECRET не задан, секрет
+// генерируется случайно на время работы процесса.
 func Load() (Config, error) {
 
 	var cfg Config

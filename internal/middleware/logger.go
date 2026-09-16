@@ -17,6 +17,8 @@ func (w *loggingResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+// Logger возвращает middleware, пишущее в лог метод, URI, код ответа
+// и длительность обработки каждого запроса.
 func Logger(log *zap.Logger) func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

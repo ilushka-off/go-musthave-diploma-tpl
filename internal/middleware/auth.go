@@ -1,3 +1,5 @@
+// Package middleware содержит HTTP-middleware: аутентификацию, распаковку
+// сжатых запросов и логирование.
 package middleware
 
 import (
@@ -23,6 +25,10 @@ func tokenFromRequest(r *http.Request) string {
 	return ""
 }
 
+// Auth возвращает middleware, пропускающее только запросы с валидным токеном
+// в cookie или в заголовке Authorization. Идентификатор пользователя кладётся
+// в контекст запроса, откуда его достаёт UserIDFromContext. Остальным запросам
+// отвечает 401.
 func Auth(tokens *auth.TokenManager) func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +48,8 @@ func Auth(tokens *auth.TokenManager) func(handler http.Handler) http.Handler {
 	}
 }
 
+// UserIDFromContext возвращает идентификатор пользователя, положенный в контекст
+// middleware Auth, и признак его наличия.
 func UserIDFromContext(ctx context.Context) (int, bool) {
 	userID, ok := ctx.Value(userIDKey{}).(int)
 	return userID, ok

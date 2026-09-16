@@ -1,26 +1,34 @@
+// Package service содержит бизнес-логику системы лояльности: работу с
+// пользователями, заказами и накопительным счётом.
 package service
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"unicode/utf8"
 
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/auth"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/models"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/storage"
 )
 
+// Ошибки регистрации и аутентификации, которые слой HTTP переводит в коды ответа.
 var (
 	ErrInvalidInput       = errors.New("invalid login or password format")
 	ErrLoginTaken         = errors.New("login already exists")
 	ErrInvalidCredentials = errors.New("invalid user credentials")
 )
 
+const maxLoginLength = 32
+
+// UserService реализует регистрацию и аутентификацию пользователей.
 type UserService struct {
 	users  storage.UserRepository
 	tokens *auth.TokenManager
 }
 
+// NewUserService создаёт UserService поверх хранилища пользователей и менеджера токенов.
 func NewUserService(users storage.UserRepository, tokens *auth.TokenManager) *UserService {
 	return &UserService{
 		users:  users,
@@ -28,8 +36,14 @@ func NewUserService(users storage.UserRepository, tokens *auth.TokenManager) *Us
 	}
 }
 
+// Register заводит пользователя и сразу выпускает для него токен доступа.
+// Возвращает ErrInvalidInput при пустых или слишком длинных логине и пароле
+// и ErrLoginTaken, если логин уже занят.
 func (s *UserService) Register(ctx context.Context, login, password string) (string, error) {
 	if login == "" || password == "" {
+		return "", ErrInvalidInput
+	}
+	if utf8.RuneCountInString(login) > maxLoginLength {
 		return "", ErrInvalidInput
 	}
 
@@ -59,6 +73,8 @@ func (s *UserService) Register(ctx context.Context, login, password string) (str
 	return token, nil
 }
 
+// Login сверяет пару логин/пароль и выпускает токен доступа.
+// При неверной паре возвращает ErrInvalidCredentials.
 func (s *UserService) Login(ctx context.Context, login, password string) (string, error) {
 
 	user, err := s.users.GetUserByLogin(ctx, login)

@@ -1,3 +1,4 @@
+// Package postgres реализует хранилища сервиса лояльности поверх PostgreSQL.
 package postgres
 
 import (
@@ -8,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// OpenPool открывает пул соединений с PostgreSQL и проверяет его
+// доступность пингом.
 func OpenPool(ctx context.Context, databaseURI string) (*pgxpool.Pool, error) {
 	pool, err := pgxpool.New(ctx, databaseURI)
 	if err != nil {

@@ -12,11 +12,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// BalanceHandler обслуживает баланс, списания и их историю.
 type BalanceHandler struct {
 	balanceService *service.BalanceService
 	logger         *zap.Logger
 }
 
+// NewBalanceHandler создаёт BalanceHandler поверх BalanceService.
 func NewBalanceHandler(balanceService *service.BalanceService, logger *zap.Logger) *BalanceHandler {
 	return &BalanceHandler{
 		balanceService: balanceService,
@@ -32,6 +34,8 @@ func toWithdrawalResponse(withdrawal models.Withdrawal) WithdrawalResponseDTO {
 	}
 }
 
+// Get обслуживает GET /api/user/balance. Отвечает 200 с текущим остатком
+// и суммой списаний, 401 без аутентификации, 500 при внутренней ошибке.
 func (h *BalanceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
@@ -59,6 +63,9 @@ func (h *BalanceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Withdraw обслуживает POST /api/user/balance/withdraw. Отвечает 200 при
+// успешном списании, 401 без аутентификации, 402 при нехватке баллов,
+// 422 при неверном номере заказа или сумме, 500 при внутренней ошибке.
 func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 	var req WithdrawRequestDTO
 
@@ -91,6 +98,9 @@ func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// ListWithdrawals обслуживает GET /api/user/withdrawals. Отвечает 200 со
+// списком списаний от самых новых к самым старым, 204 если списаний не было,
+// 401 без аутентификации, 500 при внутренней ошибке.
 func (h *BalanceHandler) ListWithdrawals(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {

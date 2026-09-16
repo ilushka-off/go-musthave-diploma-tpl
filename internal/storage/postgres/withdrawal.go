@@ -12,16 +12,21 @@ import (
 
 var _ storage.WithdrawalRepository = (*WithdrawalRepository)(nil)
 
+// WithdrawalRepository хранит списания баллов в PostgreSQL.
 type WithdrawalRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewWithdrawalRepository создаёт WithdrawalRepository поверх пула соединений.
 func NewWithdrawalRepository(pool *pgxpool.Pool) *WithdrawalRepository {
 	return &WithdrawalRepository{
 		pool: pool,
 	}
 }
 
+// CreateWithdrawal в одной транзакции списывает баллы со счёта пользователя
+// и записывает факт списания. Если баллов не хватает, возвращает
+// storage.ErrUserInsufficientFunds и счёт не трогает.
 func (r *WithdrawalRepository) CreateWithdrawal(ctx context.Context, userID int, order string, sum decimal.Decimal) (int, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -56,6 +61,8 @@ func (r *WithdrawalRepository) CreateWithdrawal(ctx context.Context, userID int,
 	return withdrawalID, nil
 }
 
+// GetWithdrawalsByUserID возвращает списания пользователя от самых новых
+// к самым старым.
 func (r *WithdrawalRepository) GetWithdrawalsByUserID(ctx context.Context, userID int) ([]models.Withdrawal, error) {
 	var withdrawals []models.Withdrawal
 
@@ -80,6 +87,7 @@ func (r *WithdrawalRepository) GetWithdrawalsByUserID(ctx context.Context, userI
 	return withdrawals, nil
 }
 
+// GetWithdrawnByUserID возвращает сумму всех списаний пользователя.
 func (r *WithdrawalRepository) GetWithdrawnByUserID(ctx context.Context, userID int) (decimal.Decimal, error) {
 	var withdrawn decimal.Decimal
 

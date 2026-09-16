@@ -15,16 +15,20 @@ import (
 
 var _ storage.UserRepository = (*UserRepository)(nil)
 
+// UserRepository хранит пользователей в PostgreSQL.
 type UserRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewUserRepository создаёт UserRepository поверх пула соединений.
 func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{
 		pool: pool,
 	}
 }
 
+// CreateUser сохраняет пользователя и возвращает его идентификатор.
+// Если логин уже занят, возвращает storage.ErrLoginExists.
 func (r *UserRepository) CreateUser(ctx context.Context, user models.User) (int, error) {
 
 	var userID int
@@ -41,6 +45,8 @@ func (r *UserRepository) CreateUser(ctx context.Context, user models.User) (int,
 
 }
 
+// GetUserByLogin возвращает пользователя по логину
+// или storage.ErrUserNotFound, если такого нет.
 func (r *UserRepository) GetUserByLogin(ctx context.Context, login string) (models.User, error) {
 
 	var user models.User
@@ -59,6 +65,8 @@ func (r *UserRepository) GetUserByLogin(ctx context.Context, login string) (mode
 	return user, nil
 }
 
+// GetCurrentBalanceByUserID возвращает текущий остаток баллов пользователя
+// или storage.ErrUserNotFound, если такого нет.
 func (r *UserRepository) GetCurrentBalanceByUserID(ctx context.Context, userID int) (decimal.Decimal, error) {
 	var balance decimal.Decimal
 

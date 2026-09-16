@@ -15,16 +15,20 @@ import (
 
 var _ storage.OrderRepository = (*OrderRepository)(nil)
 
+// OrderRepository хранит заказы в PostgreSQL.
 type OrderRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewOrderRepository создаёт OrderRepository поверх пула соединений.
 func NewOrderRepository(pool *pgxpool.Pool) *OrderRepository {
 	return &OrderRepository{
 		pool: pool,
 	}
 }
 
+// CreateOrder сохраняет заказ и возвращает его идентификатор.
+// Если номер уже занят, возвращает storage.ErrOrderExists.
 func (r *OrderRepository) CreateOrder(ctx context.Context, userID int, number string, status models.OrderStatus) (int, error) {
 	var orderID int
 
@@ -39,6 +43,8 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, userID int, number st
 	return orderID, nil
 }
 
+// GetOrderByNumber возвращает заказ по номеру
+// или storage.ErrOrderNotFound, если такого нет.
 func (r *OrderRepository) GetOrderByNumber(ctx context.Context, number string) (models.Order, error) {
 	var order models.Order
 
@@ -53,6 +59,8 @@ func (r *OrderRepository) GetOrderByNumber(ctx context.Context, number string) (
 	return order, nil
 }
 
+// GetOrdersByUserID возвращает заказы пользователя от самых новых
+// к самым старым.
 func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID int) ([]models.Order, error) {
 	var orders []models.Order
 
@@ -75,6 +83,10 @@ func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID int) ([]
 	return orders, nil
 }
 
+// UpdateStatusByNumber в одной транзакции проставляет заказу статус
+// и начисление и, для статуса PROCESSED с ненулевым начислением, пополняет
+// баланс владельца. Заказ, уже находящийся в окончательном статусе,
+// не изменяется, поэтому повторный вызов не начисляет баллы дважды.
 func (r *OrderRepository) UpdateStatusByNumber(ctx context.Context, number string, accrual *decimal.Decimal, status models.OrderStatus) error {
 
 	var userID int
@@ -110,6 +122,8 @@ func (r *OrderRepository) UpdateStatusByNumber(ctx context.Context, number strin
 	return nil
 }
 
+// GetPendingOrders возвращает заказы в статусах NEW и PROCESSING,
+// то есть те, по которым расчёт ещё не завершён.
 func (r *OrderRepository) GetPendingOrders(ctx context.Context) ([]models.Order, error) {
 	var orders []models.Order
 

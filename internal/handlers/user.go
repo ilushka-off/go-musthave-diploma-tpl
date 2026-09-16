@@ -10,11 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// UserHandler обслуживает регистрацию и аутентификацию пользователей.
 type UserHandler struct {
 	userService *service.UserService
 	logger      *zap.Logger
 }
 
+// NewUserHandler создаёт UserHandler поверх UserService.
 func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
@@ -32,6 +34,9 @@ func setAuthToken(w http.ResponseWriter, token string) {
 	})
 }
 
+// Register обслуживает POST /api/user/register. Отвечает 200 с токеном
+// в заголовке Authorization и cookie, 400 при неверном формате запроса,
+// 409 если логин занят, 500 при внутренней ошибке.
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	var req UserDTO
@@ -58,6 +63,9 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// Login обслуживает POST /api/user/login. Отвечает 200 с токеном в заголовке
+// Authorization и cookie, 400 при неверном формате запроса, 401 при неверной
+// паре логин/пароль, 500 при внутренней ошибке.
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req UserDTO
 

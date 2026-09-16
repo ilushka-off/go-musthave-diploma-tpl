@@ -1,3 +1,4 @@
+// Package models содержит доменные сущности системы лояльности.
 package models
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// User — зарегистрированный пользователь и его накопительный счёт.
 type User struct {
 	ID           int             `json:"id"`
 	Login        string          `json:"login"`
@@ -13,6 +15,8 @@ type User struct {
 	Balance      decimal.Decimal `json:"balance"`
 }
 
+// Order — номер заказа, загруженный пользователем, и результат его расчёта.
+// Accrual равен nil, пока начисление не рассчитано или не положено.
 type Order struct {
 	ID         int              `json:"id"`
 	UserID     int              `json:"user_id"`
@@ -22,6 +26,7 @@ type Order struct {
 	UploadedAt time.Time        `json:"uploaded_at"`
 }
 
+// Withdrawal — факт списания баллов в счёт оплаты заказа.
 type Withdrawal struct {
 	ID          int             `json:"id"`
 	UserID      int             `json:"user_id"`
@@ -30,7 +35,10 @@ type Withdrawal struct {
 	ProcessedAt time.Time       `json:"processed_at"`
 }
 
+// OrderStatus — статус расчёта начисления по заказу.
 type OrderStatus string
+
+// Статусы обработки расчёта. Invalid и Processed окончательны.
 
 const (
 	New        OrderStatus = "NEW"

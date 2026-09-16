@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// Decompress распаковывает тело запроса, если оно пришло с Content-Encoding: gzip.
+// Остальные запросы проходят без изменений, повреждённый gzip получает 400.
 func Decompress(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headerContent := r.Header.Get("Content-Encoding")

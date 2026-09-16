@@ -14,11 +14,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// OrderHandler обслуживает загрузку и выдачу номеров заказов.
 type OrderHandler struct {
 	orderService *service.OrderService
 	logger       *zap.Logger
 }
 
+// NewOrderHandler создаёт OrderHandler поверх OrderService.
 func NewOrderHandler(orderService *service.OrderService, logger *zap.Logger) *OrderHandler {
 	return &OrderHandler{
 		orderService: orderService,
@@ -26,6 +28,10 @@ func NewOrderHandler(orderService *service.OrderService, logger *zap.Logger) *Or
 	}
 }
 
+// Upload обслуживает POST /api/user/orders. Отвечает 202 на новый номер,
+// 200 если этот же пользователь уже загружал его, 400 при пустом теле,
+// 401 без аутентификации, 409 если номер занят другим пользователем,
+// 422 при неверном формате номера, 500 при внутренней ошибке.
 func (h *OrderHandler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := middleware.UserIDFromContext(r.Context())
@@ -72,6 +78,9 @@ func toOrderDTO(order models.Order) OrderDTO {
 	}
 }
 
+// List обслуживает GET /api/user/orders. Отвечает 200 со списком заказов
+// от самых новых к самым старым, 204 если заказов нет, 401 без аутентификации,
+// 500 при внутренней ошибке.
 func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := middleware.UserIDFromContext(r.Context())

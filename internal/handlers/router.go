@@ -1,3 +1,4 @@
+// Package handlers реализует HTTP API накопительной системы лояльности.
 package handlers
 
 import (
@@ -10,6 +11,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewRouter собирает HTTP-роутер сервиса. Публичны только регистрация
+// и аутентификация, остальные хендлеры закрыты проверкой токена. Ко всем
+// запросам применяются логирование, сжатие ответа и распаковка тела.
 func NewRouter(userHandler *UserHandler, orderHandler *OrderHandler, balanceHandler *BalanceHandler, logger *zap.Logger, tokenManager *auth.TokenManager) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger(logger))

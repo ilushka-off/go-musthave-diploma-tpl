@@ -7,11 +7,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Ошибки работы с паролями.
 var (
 	ErrPasswordTooLong = errors.New("password too long")
 	ErrInvalidPassword = errors.New("invalid password")
 )
 
+// HashPassword считает bcrypt-хеш пароля. Для пароля длиннее допустимого
+// для bcrypt возвращает ErrPasswordTooLong.
 func HashPassword(password string) (string, error) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -26,6 +29,8 @@ func HashPassword(password string) (string, error) {
 	return string(hash), nil
 }
 
+// CheckPassword сверяет пароль с хешем и возвращает ErrInvalidPassword
+// при несовпадении.
 func CheckPassword(passwordHash, password string) error {
 
 	err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))

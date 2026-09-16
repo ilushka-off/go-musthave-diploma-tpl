@@ -14,6 +14,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// ErrOrderNotRegistered возвращается, когда заказ не зарегистрирован
+// в системе расчёта начислений.
 var (
 	ErrOrderNotRegistered = errors.New("order is not registered in accrual system")
 )
@@ -23,24 +25,32 @@ type clientResponse struct {
 	Status  string           `json:"status"`
 	Accrual *decimal.Decimal `json:"accrual,omitempty"`
 }
+
+// Result — результат расчёта по заказу. Accrual равен nil, если начисление
+// не положено или ещё не рассчитано.
 type Result struct {
 	Status  models.OrderStatus
 	Accrual *decimal.Decimal
 }
 
+// Client — HTTP-клиент внешней системы расчёта начислений.
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
+// RateLimitError сообщает о превышении лимита запросов к системе начислений
+// и о том, через сколько её можно опрашивать снова.
 type RateLimitError struct {
 	RetryAfter time.Duration
 }
 
+// Error реализует интерфейс error.
 func (rl *RateLimitError) Error() string {
 	return fmt.Sprintf("rate limit exceeded, retry after %s", rl.RetryAfter)
 }
 
+// NewClient создаёт клиент системы начислений, доступной по адресу baseURL.
 func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL:    baseURL,
@@ -61,6 +71,9 @@ func mapStatus(status string) (models.OrderStatus, error) {
 	}
 }
 
+// GetOrderAccrual запрашивает расчёт по номеру заказа. Возвращает
+// ErrOrderNotRegistered, если заказ системе неизвестен, и *RateLimitError
+// при превышении лимита запросов.
 func (c *Client) GetOrderAccrual(ctx context.Context, number string) (Result, error) {
 	endpoint, err := url.JoinPath(c.baseURL, "api", "orders", number)
 	if err != nil {
