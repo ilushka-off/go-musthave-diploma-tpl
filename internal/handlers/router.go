@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/auth"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/middleware"
 	"go.uber.org/zap"
@@ -12,6 +13,8 @@ import (
 func NewRouter(userHandler *UserHandler, orderHandler *OrderHandler, balanceHandler *BalanceHandler, logger *zap.Logger, tokenManager *auth.TokenManager) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger(logger))
+	r.Use(chimiddleware.Compress(5))
+	r.Use(middleware.Decompress)
 
 	r.Post("/api/user/register", userHandler.Register)
 	r.Post("/api/user/login", userHandler.Login)
