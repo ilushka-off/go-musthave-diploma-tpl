@@ -241,7 +241,14 @@ type request struct {
 	raw    []byte
 }
 
-func (e *testEnv) do(t *testing.T, req request) *http.Response {
+type response struct {
+	status  int
+	header  http.Header
+	cookies []*http.Cookie
+	body    string
+}
+
+func (e *testEnv) do(t *testing.T, req request) response {
 	t.Helper()
 
 	body := io.Reader(nil)
@@ -266,17 +273,17 @@ func (e *testEnv) do(t *testing.T, req request) *http.Response {
 	if err != nil {
 		t.Fatalf("send request: %v", err)
 	}
-	t.Cleanup(func() { resp.Body.Close() })
-
-	return resp
-}
-
-func readBody(t *testing.T, resp *http.Response) string {
-	t.Helper()
+	defer resp.Body.Close()
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("read body: %v", err)
 	}
-	return string(data)
+
+	return response{
+		status:  resp.StatusCode,
+		header:  resp.Header.Clone(),
+		cookies: resp.Cookies(),
+		body:    string(data),
+	}
 }

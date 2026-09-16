@@ -26,8 +26,8 @@ func TestProtectedRoutesRequireAuth(t *testing.T) {
 	for _, route := range routes {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			resp := env.do(t, request{method: route.method, path: route.path, body: `{}`})
-			if resp.StatusCode != http.StatusUnauthorized {
-				t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+			if resp.status != http.StatusUnauthorized {
+				t.Errorf("status = %d, want %d", resp.status, http.StatusUnauthorized)
 			}
 		})
 	}
@@ -44,8 +44,8 @@ func TestProtectedRoutesRejectBadToken(t *testing.T) {
 	for name, token := range tokens {
 		t.Run(name, func(t *testing.T) {
 			resp := env.do(t, request{method: http.MethodGet, path: "/api/user/balance", token: token})
-			if resp.StatusCode != http.StatusUnauthorized {
-				t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+			if resp.status != http.StatusUnauthorized {
+				t.Errorf("status = %d, want %d", resp.status, http.StatusUnauthorized)
 			}
 		})
 	}
@@ -64,7 +64,7 @@ func TestCookieAuthIsAccepted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create request: %v", err)
 	}
-	for _, cookie := range registered.Cookies() {
+	for _, cookie := range registered.cookies {
 		req.AddCookie(cookie)
 	}
 
@@ -101,8 +101,8 @@ func TestGzipRequestBodyIsDecompressed(t *testing.T) {
 		},
 	})
 
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	if resp.status != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.status, http.StatusOK)
 	}
 	if _, ok := env.users.users["user"]; !ok {
 		t.Error("user was not created from the gzipped body")
@@ -119,8 +119,8 @@ func TestBrokenGzipRequestBodyIsRejected(t *testing.T) {
 		header: map[string]string{"Content-Encoding": "gzip"},
 	})
 
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusBadRequest)
+	if resp.status != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", resp.status, http.StatusBadRequest)
 	}
 }
 

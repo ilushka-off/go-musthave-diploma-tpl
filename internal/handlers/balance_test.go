@@ -71,17 +71,17 @@ func TestGetBalance(t *testing.T) {
 			}
 
 			resp := env.do(t, req)
-			if resp.StatusCode != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			if resp.status != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", resp.status, tt.wantStatus)
 			}
 			if tt.wantBody == "" {
 				return
 			}
 
-			if got := resp.Header.Get("Content-Type"); got != "application/json" {
+			if got := resp.header.Get("Content-Type"); got != "application/json" {
 				t.Errorf("Content-Type = %q, want application/json", got)
 			}
-			assertJSONEqual(t, readBody(t, resp), tt.wantBody)
+			assertJSONEqual(t, resp.body, tt.wantBody)
 		})
 	}
 }
@@ -168,8 +168,8 @@ func TestWithdrawHandler(t *testing.T) {
 			}
 
 			resp := env.do(t, req)
-			if resp.StatusCode != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			if resp.status != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", resp.status, tt.wantStatus)
 			}
 			if tt.wantSum == "" {
 				return
@@ -232,17 +232,17 @@ func TestListWithdrawals(t *testing.T) {
 			}
 
 			resp := env.do(t, req)
-			if resp.StatusCode != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			if resp.status != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", resp.status, tt.wantStatus)
 			}
 			if tt.wantBody == "" {
 				return
 			}
 
-			if got := resp.Header.Get("Content-Type"); got != "application/json" {
+			if got := resp.header.Get("Content-Type"); got != "application/json" {
 				t.Errorf("Content-Type = %q, want application/json", got)
 			}
-			assertJSONEqual(t, readBody(t, resp), tt.wantBody)
+			assertJSONEqual(t, resp.body, tt.wantBody)
 		})
 	}
 }

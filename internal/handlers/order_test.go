@@ -110,8 +110,8 @@ func TestUploadOrder(t *testing.T) {
 			}
 
 			resp := env.do(t, req)
-			if resp.StatusCode != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			if resp.status != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", resp.status, tt.wantStatus)
 			}
 		})
 	}
@@ -127,8 +127,8 @@ func TestUploadOrderTrimsWhitespace(t *testing.T) {
 		token:  env.tokenFor(t, 1),
 	})
 
-	if resp.StatusCode != http.StatusAccepted {
-		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusAccepted)
+	if resp.status != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d", resp.status, http.StatusAccepted)
 	}
 	if _, ok := env.orders.orders["12345678903"]; !ok {
 		t.Error("order number was not trimmed before storing")
@@ -191,17 +191,17 @@ func TestListOrders(t *testing.T) {
 			}
 
 			resp := env.do(t, req)
-			if resp.StatusCode != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			if resp.status != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", resp.status, tt.wantStatus)
 			}
 			if tt.wantBody == "" {
 				return
 			}
 
-			if got := resp.Header.Get("Content-Type"); got != "application/json" {
+			if got := resp.header.Get("Content-Type"); got != "application/json" {
 				t.Errorf("Content-Type = %q, want application/json", got)
 			}
-			assertJSONEqual(t, readBody(t, resp), tt.wantBody)
+			assertJSONEqual(t, resp.body, tt.wantBody)
 		})
 	}
 }
@@ -220,7 +220,7 @@ func TestListOrdersPreservesRepositoryOrder(t *testing.T) {
 	resp := env.do(t, request{method: http.MethodGet, path: "/api/user/orders", token: env.tokenFor(t, 1)})
 
 	var got []OrderDTO
-	if err := json.Unmarshal([]byte(readBody(t, resp)), &got); err != nil {
+	if err := json.Unmarshal([]byte(resp.body), &got); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 	if len(got) != 2 {

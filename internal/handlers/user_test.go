@@ -87,8 +87,8 @@ func TestRegister(t *testing.T) {
 				header: map[string]string{"Content-Type": "application/json"},
 			})
 
-			if resp.StatusCode != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			if resp.status != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", resp.status, tt.wantStatus)
 			}
 			if tt.wantStatus == http.StatusOK {
 				assertAuthenticated(t, env, resp)
@@ -141,8 +141,8 @@ func TestLogin(t *testing.T) {
 				path:   "/api/user/register",
 				body:   `{"login":"user","password":"secret"}`,
 			})
-			if registered.StatusCode != http.StatusOK {
-				t.Fatalf("setup registration failed with %d", registered.StatusCode)
+			if registered.status != http.StatusOK {
+				t.Fatalf("setup registration failed with %d", registered.status)
 			}
 
 			env.users.getErr = tt.getErr
@@ -153,8 +153,8 @@ func TestLogin(t *testing.T) {
 				body:   tt.body,
 			})
 
-			if resp.StatusCode != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			if resp.status != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", resp.status, tt.wantStatus)
 			}
 			if tt.wantStatus == http.StatusOK {
 				assertAuthenticated(t, env, resp)
@@ -172,25 +172,25 @@ func TestRegisterIssuesUsableToken(t *testing.T) {
 		body:   `{"login":"user","password":"secret"}`,
 	})
 
-	token := strings.TrimPrefix(resp.Header.Get("Authorization"), "Bearer ")
+	token := strings.TrimPrefix(resp.header.Get("Authorization"), "Bearer ")
 
 	balance := env.do(t, request{method: http.MethodGet, path: "/api/user/balance", token: token})
-	if balance.StatusCode != http.StatusOK {
-		t.Fatalf("balance with fresh token = %d, want %d", balance.StatusCode, http.StatusOK)
+	if balance.status != http.StatusOK {
+		t.Fatalf("balance with fresh token = %d, want %d", balance.status, http.StatusOK)
 	}
 }
 
-func assertAuthenticated(t *testing.T, env *testEnv, resp *http.Response) {
+func assertAuthenticated(t *testing.T, env *testEnv, resp response) {
 	t.Helper()
 
-	header := resp.Header.Get("Authorization")
+	header := resp.header.Get("Authorization")
 	if !strings.HasPrefix(header, "Bearer ") {
 		t.Fatalf("Authorization header = %q, want a Bearer token", header)
 	}
 	headerToken := strings.TrimPrefix(header, "Bearer ")
 
 	var cookieToken string
-	for _, cookie := range resp.Cookies() {
+	for _, cookie := range resp.cookies {
 		if cookie.Name == auth.CookieName {
 			cookieToken = cookie.Value
 		}
