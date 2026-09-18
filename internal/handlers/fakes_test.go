@@ -28,10 +28,8 @@ var (
 type fakeUserRepository struct {
 	mu        sync.Mutex
 	users     map[string]models.User
-	balance   decimal.Decimal
 	createErr error
 	getErr    error
-	balanceEr error
 }
 
 func newFakeUserRepository() *fakeUserRepository {
@@ -73,10 +71,10 @@ func (f *fakeUserRepository) GetCurrentBalanceByUserID(_ context.Context, _ int)
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	if f.balanceEr != nil {
-		return decimal.Decimal{}, f.balanceEr
+	if f.getErr != nil {
+		return decimal.Decimal{}, f.getErr
 	}
-	return f.balance, nil
+	return decimal.Decimal{}, nil
 }
 
 type fakeOrderRepository struct {
@@ -145,10 +143,12 @@ type fakeWithdrawalRepository struct {
 	mu          sync.Mutex
 	withdrawals []models.Withdrawal
 	withdrawn   decimal.Decimal
+	balance     decimal.Decimal
 	created     []models.Withdrawal
 	createErr   error
 	listErr     error
 	sumErr      error
+	balanceErr  error
 }
 
 func (f *fakeWithdrawalRepository) CreateWithdrawal(_ context.Context, userID int, order string, sum decimal.Decimal) (int, error) {
@@ -183,6 +183,16 @@ func (f *fakeWithdrawalRepository) GetWithdrawnByUserID(_ context.Context, _ int
 	return f.withdrawn, nil
 }
 
+func (f *fakeWithdrawalRepository) GetBalance(_ context.Context, _ int) (decimal.Decimal, decimal.Decimal, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if f.balanceErr != nil {
+		return decimal.Decimal{}, decimal.Decimal{}, f.balanceErr
+	}
+	return f.balance, f.withdrawn, nil
+}
+
 type testEnv struct {
 	server       *httptest.Server
 	users        *fakeUserRepository
@@ -205,7 +215,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	router := NewRouter(
 		NewUserHandler(service.NewUserService(users, tokenManager), logger),
 		NewOrderHandler(service.NewOrderService(orders), logger),
-		NewBalanceHandler(service.NewBalanceService(withdrawals, users), logger),
+		NewBalanceHandler(service.NewBalanceService(withdrawals), logger),
 		logger,
 		tokenManager,
 	)

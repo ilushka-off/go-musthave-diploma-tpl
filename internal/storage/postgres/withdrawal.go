@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/models"
 	"github.com/ilushka-off/go-musthave-diploma-tpl/internal/storage"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
@@ -34,14 +37,25 @@ func (r *WithdrawalRepository) CreateWithdrawal(ctx context.Context, userID int,
 	}
 	defer tx.Rollback(ctx)
 
-	query := `UPDATE users SET balance = balance - $1 WHERE id = $2 AND balance >= $1`
+	query := `SELECT balance FROM users WHERE id = $1 FOR UPDATE`
 
-	tag, err := tx.Exec(ctx, query, sum, userID)
-	if err != nil {
-		return 0, fmt.Errorf("debit balance: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
+	var currentBalance decimal.Decimal
+
+	err = tx.QueryRow(ctx, query, userID).Scan(&currentBalance)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, storage.ErrUserInsufficientFunds
+	}
+	if err != nil {
+		return 0, fmt.Errorf("lock user balance: %w", err)
+	}
+	if currentBalance.LessThan(sum) {
+		return 0, storage.ErrUserInsufficientFunds
+	}
+
+	query = `UPDATE users SET balance = balance - $1 WHERE id = $2`
+
+	if _, err = tx.Exec(ctx, query, sum, userID); err != nil {
+		return 0, fmt.Errorf("debit balance: %w", err)
 	}
 
 	query = `INSERT INTO withdrawals(user_id, "order", sum) VALUES ($1, $2, $3) RETURNING id`
@@ -49,7 +63,6 @@ func (r *WithdrawalRepository) CreateWithdrawal(ctx context.Context, userID int,
 	var withdrawalID int
 
 	err = tx.QueryRow(ctx, query, userID, order, sum).Scan(&withdrawalID)
-
 	if err != nil {
 		return 0, fmt.Errorf("insert withdrawal: %w", err)
 	}
@@ -98,4 +111,45 @@ func (r *WithdrawalRepository) GetWithdrawnByUserID(ctx context.Context, userID 
 		return decimal.Decimal{}, fmt.Errorf("select withdrawn sum: %w", err)
 	}
 	return withdrawn, nil
+}
+
+// GetBalance возвращает текущий остаток и сумму списаний пользователя из
+// одного снапшота REPEATABLE READ, чтобы конкурентное списание не могло
+// разъехаться между двумя величинами. При ошибке сериализации повторяет
+// попытку.
+func (r *WithdrawalRepository) GetBalance(ctx context.Context, userID int) (decimal.Decimal, decimal.Decimal, error) {
+	for {
+		current, withdrawn, err := r.getBalanceOnce(ctx, userID)
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "40001" {
+			continue
+		}
+		return current, withdrawn, err
+	}
+}
+
+func (r *WithdrawalRepository) getBalanceOnce(ctx context.Context, userID int) (decimal.Decimal, decimal.Decimal, error) {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		return decimal.Decimal{}, decimal.Decimal{}, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var current decimal.Decimal
+	if err := tx.QueryRow(ctx, `SELECT balance FROM users WHERE id = $1`, userID).Scan(&current); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return decimal.Decimal{}, decimal.Decimal{}, storage.ErrUserNotFound
+		}
+		return decimal.Decimal{}, decimal.Decimal{}, fmt.Errorf("select balance: %w", err)
+	}
+
+	var withdrawn decimal.Decimal
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(SUM(sum), 0) FROM withdrawals WHERE user_id = $1`, userID).Scan(&withdrawn); err != nil {
+		return decimal.Decimal{}, decimal.Decimal{}, fmt.Errorf("select withdrawn: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return decimal.Decimal{}, decimal.Decimal{}, fmt.Errorf("commit tx: %w", err)
+	}
+
+	return current, withdrawn, nil
 }

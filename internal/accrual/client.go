@@ -43,6 +43,15 @@ type Client struct {
 // и о том, через сколько её можно опрашивать снова.
 type RateLimitError struct {
 	RetryAfter time.Duration
+	ParseErr   error
+}
+
+type ServerError struct {
+	StatusCode int
+}
+
+func (se *ServerError) Error() string {
+	return fmt.Sprintf("accrual server error: status %d", se.StatusCode)
 }
 
 // Error реализует интерфейс error.
@@ -112,14 +121,23 @@ func (c *Client) GetOrderAccrual(ctx context.Context, number string) (Result, er
 	case http.StatusNoContent:
 		return Result{}, ErrOrderNotRegistered
 	case http.StatusTooManyRequests:
-		seconds, err := strconv.Atoi(resp.Header.Get("Retry-After"))
-		if err != nil || seconds <= 0 {
+		seconds, parseErr := strconv.Atoi(resp.Header.Get("Retry-After"))
+		if parseErr == nil && seconds <= 0 {
+			parseErr = fmt.Errorf("non-positive retry-after value: %d", seconds)
+		}
+		if parseErr != nil {
 			seconds = 60
 		}
 		return Result{}, &RateLimitError{
 			RetryAfter: time.Duration(seconds) * time.Second,
+			ParseErr:   parseErr,
 		}
 	default:
+		if resp.StatusCode >= 500 {
+			return Result{}, &ServerError{
+				StatusCode: resp.StatusCode,
+			}
+		}
 		return Result{}, fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 }

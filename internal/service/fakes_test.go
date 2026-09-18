@@ -16,7 +16,6 @@ var (
 
 type fakeUserRepository struct {
 	users     map[string]models.User
-	balance   decimal.Decimal
 	createErr error
 	getErr    error
 	created   models.User
@@ -56,7 +55,7 @@ func (f *fakeUserRepository) GetCurrentBalanceByUserID(_ context.Context, _ int)
 	if f.getErr != nil {
 		return decimal.Decimal{}, f.getErr
 	}
-	return f.balance, nil
+	return decimal.Decimal{}, nil
 }
 
 type fakeOrderRepository struct {
@@ -111,9 +110,11 @@ func (f *fakeOrderRepository) GetPendingOrders(_ context.Context) ([]models.Orde
 type fakeWithdrawalRepository struct {
 	withdrawals []models.Withdrawal
 	withdrawn   decimal.Decimal
+	balance     decimal.Decimal
 	withdrawErr error
 	getErr      error
 	listErr     error
+	balanceErr  error
 }
 
 func (f *fakeWithdrawalRepository) CreateWithdrawal(_ context.Context, _ int, _ string, _ decimal.Decimal) (int, error) {
@@ -135,4 +136,11 @@ func (f *fakeWithdrawalRepository) GetWithdrawnByUserID(_ context.Context, _ int
 		return decimal.Decimal{}, f.getErr
 	}
 	return f.withdrawn, nil
+}
+
+func (f *fakeWithdrawalRepository) GetBalance(_ context.Context, _ int) (decimal.Decimal, decimal.Decimal, error) {
+	if f.balanceErr != nil {
+		return decimal.Decimal{}, decimal.Decimal{}, f.balanceErr
+	}
+	return f.balance, f.withdrawn, nil
 }

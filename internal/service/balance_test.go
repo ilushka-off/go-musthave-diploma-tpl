@@ -66,7 +66,7 @@ func TestWithdraw(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			withdrawals := &fakeWithdrawalRepository{withdrawErr: tt.withdrawErr}
-			service := NewBalanceService(withdrawals, newFakeUserRepository())
+			service := NewBalanceService(withdrawals)
 
 			err := service.Withdraw(context.Background(), 1, tt.number, tt.sum)
 			if !errors.Is(err, tt.wantErr) {
@@ -80,11 +80,9 @@ func TestGetBalance(t *testing.T) {
 	wantCurrent := decimal.NewFromFloat(900.5)
 	wantWithdrawn := decimal.NewFromInt(100)
 
-	users := newFakeUserRepository()
-	users.balance = wantCurrent
-	withdrawals := &fakeWithdrawalRepository{withdrawn: wantWithdrawn}
+	withdrawals := &fakeWithdrawalRepository{balance: wantCurrent, withdrawn: wantWithdrawn}
 
-	service := NewBalanceService(withdrawals, users)
+	service := NewBalanceService(withdrawals)
 
 	balance, err := service.GetBalance(context.Background(), 1)
 	if err != nil {
@@ -101,10 +99,7 @@ func TestGetBalance(t *testing.T) {
 func TestGetBalanceRepositoryFailure(t *testing.T) {
 	errDB := errors.New("db is down")
 
-	users := newFakeUserRepository()
-	users.getErr = errDB
-
-	service := NewBalanceService(&fakeWithdrawalRepository{}, users)
+	service := NewBalanceService(&fakeWithdrawalRepository{balanceErr: errDB})
 
 	if _, err := service.GetBalance(context.Background(), 1); !errors.Is(err, errDB) {
 		t.Errorf("GetBalance() error = %v, want %v", err, errDB)

@@ -57,13 +57,17 @@ func TestGetBalance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			env := newTestEnv(t)
 			if tt.current != "" {
-				env.users.balance = decimal.RequireFromString(tt.current)
+				env.withdrawals.balance = decimal.RequireFromString(tt.current)
 			}
 			if tt.withdrawn != "" {
 				env.withdrawals.withdrawn = decimal.RequireFromString(tt.withdrawn)
 			}
-			env.users.balanceEr = tt.balanceEr
-			env.withdrawals.sumErr = tt.sumErr
+			if tt.balanceEr != nil {
+				env.withdrawals.balanceErr = tt.balanceEr
+			}
+			if tt.sumErr != nil {
+				env.withdrawals.balanceErr = tt.sumErr
+			}
 
 			req := request{method: http.MethodGet, path: "/api/user/balance"}
 			if !tt.noToken {

@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	tokenTTL            = 24 * time.Hour
-	accrualPollInterval = time.Second
+	tokenTTL              = 24 * time.Hour
+	accrualPollInterval   = time.Second
+	accrualWorkerPoolSize = 5
 )
 
 func main() {
@@ -74,7 +75,7 @@ func run() error {
 	orderHandler := handlers.NewOrderHandler(orderService, logger)
 
 	withdrawalRepository := postgres.NewWithdrawalRepository(pool)
-	balanceService := service.NewBalanceService(withdrawalRepository, userRepository)
+	balanceService := service.NewBalanceService(withdrawalRepository)
 	balanceHandler := handlers.NewBalanceHandler(balanceService, logger)
 
 	router := handlers.NewRouter(userHandler, orderHandler, balanceHandler, logger, tokenManager)
@@ -88,7 +89,7 @@ func run() error {
 		cancelWorker()
 		wg.Wait()
 	}()
-	worker := accrual.NewWorker(orderRepository, logger, accrualClient, accrualPollInterval)
+	worker := accrual.NewWorker(orderRepository, logger, accrualClient, accrualPollInterval, accrualWorkerPoolSize)
 	wg.Go(func() {
 		worker.Run(workerCtx)
 	})

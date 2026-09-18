@@ -24,7 +24,6 @@ const balanceScale = 2
 // и историю списаний.
 type BalanceService struct {
 	withdrawals storage.WithdrawalRepository
-	users       storage.UserRepository
 }
 
 // Balance — текущий остаток баллов и сумма, списанная за всё время.
@@ -33,29 +32,23 @@ type Balance struct {
 	Withdrawn decimal.Decimal
 }
 
-// NewBalanceService создаёт BalanceService поверх хранилищ списаний и пользователей.
-func NewBalanceService(withdrawals storage.WithdrawalRepository, users storage.UserRepository) *BalanceService {
+// NewBalanceService создаёт BalanceService поверх хранилища списаний.
+func NewBalanceService(withdrawals storage.WithdrawalRepository) *BalanceService {
 	return &BalanceService{
 		withdrawals: withdrawals,
-		users:       users,
 	}
 }
 
 // GetBalance возвращает текущий остаток баллов и сумму всех списаний пользователя.
 func (s *BalanceService) GetBalance(ctx context.Context, userID int) (Balance, error) {
-	current, err := s.users.GetCurrentBalanceByUserID(ctx, userID)
+	current, withdrawn, err := s.withdrawals.GetBalance(ctx, userID)
 	if err != nil {
-		return Balance{}, fmt.Errorf("get current balance: %w", err)
-	}
-	withdrawn, err := s.withdrawals.GetWithdrawnByUserID(ctx, userID)
-	if err != nil {
-		return Balance{}, fmt.Errorf("get withdrawn sum: %w", err)
+		return Balance{}, fmt.Errorf("get balance: %w", err)
 	}
 	return Balance{
 		Current:   current,
 		Withdrawn: withdrawn,
 	}, nil
-
 }
 
 // Withdraw списывает баллы в счёт оплаты заказа order. Сумма округляется до

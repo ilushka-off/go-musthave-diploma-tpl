@@ -73,7 +73,7 @@ func (f *fakeOrderRepository) GetOrdersByUserID(_ context.Context, _ int) ([]mod
 }
 
 func newTestWorker(repository storage.OrderRepository, baseURL string) *Worker {
-	return NewWorker(repository, zap.NewNop(), NewClient(baseURL), time.Millisecond)
+	return NewWorker(repository, zap.NewNop(), NewClient(baseURL), time.Millisecond, 5)
 }
 
 func TestProcessPending(t *testing.T) {

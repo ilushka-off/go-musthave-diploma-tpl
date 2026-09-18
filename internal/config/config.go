@@ -25,34 +25,38 @@ var (
 )
 
 // Load собирает конфигурацию из флагов -a, -d, -r и переменных окружения
-// RUN_ADDRESS, DATABASE_URI, ACCRUAL_SYSTEM_ADDRESS, JWT_SECRET. Переменные
-// окружения имеют приоритет над флагами. Адрес системы начислений дополняется
+// RUN_ADDRESS, DATABASE_URI, ACCRUAL_SYSTEM_ADDRESS, JWT_SECRET. Явно
+// переданный флаг имеет приоритет над переменной окружения, переменная
+// окружения — над значением по умолчанию. Адрес системы начислений дополняется
 // схемой http://, если она не указана. Если JWT_SECRET не задан, секрет
 // генерируется случайно на время работы процесса.
 func Load() (Config, error) {
 
 	var cfg Config
 
-	flag.StringVar(&cfg.RunAddress, "a", "localhost:8080", "HTTP server address")
-	flag.StringVar(&cfg.DatabaseURI, "d", "", "Database URL connection")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", "", "Accrual System Address")
-	flag.Parse()
-
-	if v := os.Getenv("RUN_ADDRESS"); v != "" {
-		cfg.RunAddress = v
+	runAddress := "localhost:8080"
+	if v, ok := os.LookupEnv("RUN_ADDRESS"); ok {
+		runAddress = v
 	}
 
-	if v := os.Getenv("DATABASE_URI"); v != "" {
-		cfg.DatabaseURI = v
+	var databaseURI string
+	if v, ok := os.LookupEnv("DATABASE_URI"); ok {
+		databaseURI = v
 	}
 
-	if v := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); v != "" {
-		cfg.AccrualSystemAddress = v
+	var accrualSystemAddress string
+	if v, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS"); ok {
+		accrualSystemAddress = v
 	}
 
-	if v := os.Getenv("JWT_SECRET"); v != "" {
+	if v, ok := os.LookupEnv("JWT_SECRET"); ok {
 		cfg.JWTSecret = v
 	}
+
+	flag.StringVar(&cfg.RunAddress, "a", runAddress, "HTTP server address")
+	flag.StringVar(&cfg.DatabaseURI, "d", databaseURI, "Database URL connection")
+	flag.StringVar(&cfg.AccrualSystemAddress, "r", accrualSystemAddress, "Accrual System Address")
+	flag.Parse()
 
 	if cfg.JWTSecret == "" {
 		jwtSecret := make([]byte, 32)
