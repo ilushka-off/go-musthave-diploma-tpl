@@ -38,7 +38,6 @@ type OrderRepository interface {
 type WithdrawalRepository interface {
 	CreateWithdrawal(ctx context.Context, userID int, order string, sum decimal.Decimal) (int, error)
 	GetWithdrawalsByUserID(ctx context.Context, userID int) ([]models.Withdrawal, error)
-	GetWithdrawnByUserID(ctx context.Context, userID int) (decimal.Decimal, error)
 	// GetBalance возвращает текущий остаток и сумму списаний одной консистентной
 	// операцией: обе величины читаются из одного снапшота, чтобы конкурентное
 	// списание не могло разъехаться между ними.

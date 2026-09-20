@@ -108,7 +108,7 @@ func (w *Worker) processPending(ctx context.Context) {
 		poolSize = len(orders)
 	}
 
-	jobs := make(chan models.Order)
+	jobs := make(chan models.Order, poolSize)
 
 	var wg sync.WaitGroup
 	for i := 0; i < poolSize; i++ {

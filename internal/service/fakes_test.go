@@ -112,7 +112,6 @@ type fakeWithdrawalRepository struct {
 	withdrawn   decimal.Decimal
 	balance     decimal.Decimal
 	withdrawErr error
-	getErr      error
 	listErr     error
 	balanceErr  error
 }
@@ -129,13 +128,6 @@ func (f *fakeWithdrawalRepository) GetWithdrawalsByUserID(_ context.Context, _ i
 		return nil, f.listErr
 	}
 	return f.withdrawals, nil
-}
-
-func (f *fakeWithdrawalRepository) GetWithdrawnByUserID(_ context.Context, _ int) (decimal.Decimal, error) {
-	if f.getErr != nil {
-		return decimal.Decimal{}, f.getErr
-	}
-	return f.withdrawn, nil
 }
 
 func (f *fakeWithdrawalRepository) GetBalance(_ context.Context, _ int) (decimal.Decimal, decimal.Decimal, error) {

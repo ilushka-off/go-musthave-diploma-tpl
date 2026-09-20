@@ -147,7 +147,6 @@ type fakeWithdrawalRepository struct {
 	created     []models.Withdrawal
 	createErr   error
 	listErr     error
-	sumErr      error
 	balanceErr  error
 }
 
@@ -171,16 +170,6 @@ func (f *fakeWithdrawalRepository) GetWithdrawalsByUserID(_ context.Context, _ i
 		return nil, f.listErr
 	}
 	return f.withdrawals, nil
-}
-
-func (f *fakeWithdrawalRepository) GetWithdrawnByUserID(_ context.Context, _ int) (decimal.Decimal, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if f.sumErr != nil {
-		return decimal.Decimal{}, f.sumErr
-	}
-	return f.withdrawn, nil
 }
 
 func (f *fakeWithdrawalRepository) GetBalance(_ context.Context, _ int) (decimal.Decimal, decimal.Decimal, error) {
